@@ -31,16 +31,54 @@
  */
 package com.duramec.id;
 
-import com.duramec.time.T60Instant;
-import com.duramec.time.T72Instant;
-
-import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+
+import com.duramec.time.T60Instant;
+import com.duramec.time.T72Instant;
 
 public class UUID implements Comparable<UUID>, Serializable, Cloneable {
+
+	/**
+	 * Takes a tick count and turns it into convoluted bit fields
+	 * 
+	 * @param tick
+	 * @return
+	 */
+	private final static long convolute(long tick) {
+		return ((tick & 0xFFFFFFFF) << 32) // lo
+				| ((tick & 0xFFFF00000000L) >>> 16) // mid
+				| (versionBits | ((tick >>> 48) & 0x0FFFL)); // hi and version
+	}
+
+	/**
+	 * Takes a convoluted bit field and turns it into a tick count
+	 * 
+	 * @param bits
+	 * @return
+	 */
+	private final static long deconvolute(long bits) {
+		return ((bits & 0xFFFFFFFF00000000L) >>> 32) // lo
+				| ((bits & 0xFFFF0000L) << 16) // mid
+				| ((bits & 0x0FFFL) << 48); // hi, exclude version
+	}
+
+	/**
+	 * Returns the nil UUID (a UUID whose values are both set to zero).
+	 * <p>
+	 * Starting with version 2.0, this method does return a new UUID instance
+	 * every time it is called. Earlier versions returned one instance. This has
+	 * now been changed because this UUID has public, non-final instance fields.
+	 * Returning a new instance is therefore more safe.
+	 * 
+	 * @return a nil UUID, never <code>null</code>
+	 */
+	public static UUID nilUUID() {
+		return new UUID(0, 0);
+	}
 
 	/**
 	 * The time field of the UUID.
@@ -72,17 +110,6 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	public static long maxPayload = 0x00FFFFFFFFL;
 
 	/**
-	 * Two longs constructor.
-	 * 
-	 * @param timeBits
-	 * @param clockSeqAndNodeBits
-	 */
-	public UUID(long timeBits, long clockSeqAndNodeBits) {
-		this.timeBits = timeBits;
-		this.clockSeqAndNodeBits = clockSeqAndNodeBits;
-	}
-
-	/**
 	 * Bytes constructor
 	 * 
 	 * @param bytes
@@ -93,27 +120,17 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	}
 
 	/**
-	 * Takes a tick count and turns it into convoluted bit fields
+	 * Parses a textual representation of a UUID.
+	 * <p>
+	 * No validation is performed. If the {@link CharSequence} is shorter than
+	 * 36 characters, {@link ArrayIndexOutOfBoundsException}s will be thrown.
 	 * 
-	 * @param tick
-	 * @return
+	 * @param s
+	 *            the {@link CharSequence}, may not be <code>null</code>
 	 */
-	private final static long convolute(long tick) {
-		return ((tick & 0xFFFFFFFF) << 32) // lo
-				| ((tick & 0xFFFF00000000L) >>> 16) // mid
-				| (versionBits | ((tick >>> 48) & 0x0FFFL)); // hi and version
-	}
-
-	/**
-	 * Takes a convoluted bit field and turns it into a tick count
-	 * 
-	 * @param bits
-	 * @return
-	 */
-	private final static long deconvolute(long bits) {
-		return ((bits & 0xFFFFFFFF00000000L) >>> 32) // lo
-				| ((bits & 0xFFFF0000L) << 16) // mid
-				| ((bits & 0x0FFFL) << 48); // hi, exclude version
+	public UUID(CharSequence s) {
+		this(Hex.parseLong(s.subSequence(0, 18)), Hex.parseLong(s.subSequence(
+				19, 36)));
 	}
 
 	/**
@@ -133,12 +150,23 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 		this.clockSeqAndNodeBits = (0x0000FFFFFFFFFFFFL & node.asLong())
 				| (((0x3FFFL & payloadBits) | variantBits) << 48);
 	}
-	
+
 	public UUID(EUI48 node, T72Instant inst) {
 	}
-	
+
 	public UUID(EUI64 node, T60Instant inst) {
 		// create version 6
+	}
+
+	/**
+	 * Two longs constructor.
+	 * 
+	 * @param timeBits
+	 * @param clockSeqAndNodeBits
+	 */
+	public UUID(long timeBits, long clockSeqAndNodeBits) {
+		this.timeBits = timeBits;
+		this.clockSeqAndNodeBits = clockSeqAndNodeBits;
 	}
 
 	/**
@@ -152,17 +180,18 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	}
 
 	/**
-	 * Parses a textual representation of a UUID.
-	 * <p>
-	 * No validation is performed. If the {@link CharSequence} is shorter than
-	 * 36 characters, {@link ArrayIndexOutOfBoundsException}s will be thrown.
+	 * Clones this UUID.
 	 * 
-	 * @param s
-	 *            the {@link CharSequence}, may not be <code>null</code>
+	 * @return a new UUID with identical values, never <code>null</code>
 	 */
-	public UUID(CharSequence s) {
-		this(Hex.parseLong(s.subSequence(0, 18)), Hex.parseLong(s.subSequence(
-				19, 36)));
+	@Override
+	public Object clone() {
+		try {
+			return super.clone();
+		} catch (CloneNotSupportedException ex) {
+			// One of Sun's most epic fails.
+			return null;
+		}
 	}
 
 	/**
@@ -177,6 +206,7 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 * @throws ClassCastException
 	 */
+	@Override
 	public int compareTo(UUID t) {
 		if (this == t) {
 			return 0;
@@ -197,12 +227,20 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	}
 
 	/**
-	 * Get most significant bits in the UUID.
+	 * Compares two Objects for equality.
 	 * 
-	 * @return
+	 * @see java.lang.Object#equals(Object)
+	 * @param obj
+	 *            the Object to compare this UUID with, may be <code>null</code>
+	 * @return <code>true</code> if the other Object is equal to this UUID,
+	 *         <code>false</code> if not
 	 */
-	public final long getMostSignificantBits() {
-		return timeBits;
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof UUID)) {
+			return false;
+		}
+		return compareTo((UUID) obj) == 0;
 	}
 
 	/**
@@ -212,6 +250,15 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	 */
 	public final long getLeastSignificantBits() {
 		return clockSeqAndNodeBits;
+	}
+
+	/**
+	 * Get most significant bits in the UUID.
+	 * 
+	 * @return
+	 */
+	public final long getMostSignificantBits() {
+		return timeBits;
 	}
 
 	/**
@@ -242,33 +289,16 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	}
 
 	/**
-	 * Version of the UUID.
+	 * Returns a hash code of this UUID. The hash code is calculated by XOR'ing
+	 * the upper 32 bits of the time and clockSeqAndNode fields and the lower 32
+	 * bits of the time and clockSeqAndNode fields.
 	 * 
-	 * @return
+	 * @return an <code>int</code> representing the hash code
+	 * @see java.lang.Object#hashCode()
 	 */
-	public final int version() {
-		return (int) ((timeBits & 0xF000L) >>> 12);
-	}
-
-	/**
-	 * Variant of the UUID.
-	 * 
-	 * @return
-	 */
-	public final int variant() {
-		return (int) ((clockSeqAndNodeBits & 0xC000000000000000L) >>> 62);
-	}
-
-	/**
-	 * f Tweaked Serialization routine.
-	 * 
-	 * @param out
-	 *            the ObjectOutputStream
-	 * @throws IOException
-	 */
-	private void writeObject(ObjectOutputStream out) throws IOException {
-		out.writeLong(timeBits);
-		out.writeLong(clockSeqAndNodeBits);
+	@Override
+	public int hashCode() {
+		return (int) ((timeBits >> 32) ^ timeBits ^ (clockSeqAndNodeBits >> 32) ^ clockSeqAndNodeBits);
 	}
 
 	/**
@@ -281,37 +311,6 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	private void readObject(ObjectInputStream in) throws IOException {
 		timeBits = in.readLong();
 		clockSeqAndNodeBits = in.readLong();
-	}
-
-	/**
-	 * Returns this UUID as a String.
-	 * 
-	 * @return a String, never <code>null</code>
-	 * @see java.lang.Object#toString()
-	 * @see #toAppendable(Appendable)
-	 */
-	@Override
-	public final String toString() {
-		return toAppendable(null).toString();
-	}
-
-	/**
-	 * Appends a String representation of this to the given {@link StringBuffer}
-	 * or creates a new one if none is given.
-	 * 
-	 * @param in
-	 *            the StringBuffer to append to, may be <code>null</code>
-	 * @return a StringBuffer, never <code>null</code>
-	 * @see #toAppendable(Appendable)
-	 */
-	public StringBuffer toStringBuffer(StringBuffer in) {
-		StringBuffer out = in;
-		if (out == null) {
-			out = new StringBuffer(36);
-		} else {
-			out.ensureCapacity(out.length() + 36);
-		}
-		return (StringBuffer) toAppendable(out);
 	}
 
 	/**
@@ -347,62 +346,64 @@ public class UUID implements Comparable<UUID>, Serializable, Cloneable {
 	}
 
 	/**
-	 * Returns a hash code of this UUID. The hash code is calculated by XOR'ing
-	 * the upper 32 bits of the time and clockSeqAndNode fields and the lower 32
-	 * bits of the time and clockSeqAndNode fields.
+	 * Returns this UUID as a String.
 	 * 
-	 * @return an <code>int</code> representing the hash code
-	 * @see java.lang.Object#hashCode()
+	 * @return a String, never <code>null</code>
+	 * @see java.lang.Object#toString()
+	 * @see #toAppendable(Appendable)
 	 */
 	@Override
-	public int hashCode() {
-		return (int) ((timeBits >> 32) ^ timeBits ^ (clockSeqAndNodeBits >> 32) ^ clockSeqAndNodeBits);
+	public final String toString() {
+		return toAppendable(null).toString();
 	}
 
 	/**
-	 * Clones this UUID.
+	 * Appends a String representation of this to the given {@link StringBuffer}
+	 * or creates a new one if none is given.
 	 * 
-	 * @return a new UUID with identical values, never <code>null</code>
+	 * @param in
+	 *            the StringBuffer to append to, may be <code>null</code>
+	 * @return a StringBuffer, never <code>null</code>
+	 * @see #toAppendable(Appendable)
 	 */
-	@Override
-	public Object clone() {
-		try {
-			return super.clone();
-		} catch (CloneNotSupportedException ex) {
-			// One of Sun's most epic fails.
-			return null;
+	public StringBuffer toStringBuffer(StringBuffer in) {
+		StringBuffer out = in;
+		if (out == null) {
+			out = new StringBuffer(36);
+		} else {
+			out.ensureCapacity(out.length() + 36);
 		}
+		return (StringBuffer) toAppendable(out);
 	}
 
 	/**
-	 * Compares two Objects for equality.
+	 * Variant of the UUID.
 	 * 
-	 * @see java.lang.Object#equals(Object)
-	 * @param obj
-	 *            the Object to compare this UUID with, may be <code>null</code>
-	 * @return <code>true</code> if the other Object is equal to this UUID,
-	 *         <code>false</code> if not
+	 * @return
 	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (!(obj instanceof UUID)) {
-			return false;
-		}
-		return compareTo((UUID) obj) == 0;
+	public final int variant() {
+		return (int) ((clockSeqAndNodeBits & 0xC000000000000000L) >>> 62);
 	}
 
 	/**
-	 * Returns the nil UUID (a UUID whose values are both set to zero).
-	 * <p>
-	 * Starting with version 2.0, this method does return a new UUID instance
-	 * every time it is called. Earlier versions returned one instance. This has
-	 * now been changed because this UUID has public, non-final instance fields.
-	 * Returning a new instance is therefore more safe.
+	 * Version of the UUID.
 	 * 
-	 * @return a nil UUID, never <code>null</code>
+	 * @return
 	 */
-	public static UUID nilUUID() {
-		return new UUID(0, 0);
+	public final int version() {
+		return (int) ((timeBits & 0xF000L) >>> 12);
+	}
+
+	/**
+	 * f Tweaked Serialization routine.
+	 * 
+	 * @param out
+	 *            the ObjectOutputStream
+	 * @throws IOException
+	 */
+	private void writeObject(ObjectOutputStream out) throws IOException {
+		out.writeLong(timeBits);
+		out.writeLong(clockSeqAndNodeBits);
 	}
 
 }

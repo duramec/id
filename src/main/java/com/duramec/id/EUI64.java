@@ -37,23 +37,6 @@ public class EUI64 implements Comparable<EUI64> {
 	public final static EUI64 nil = min;
 
 	/**
-	 * Private constructor, used by parse(), which forces callers to use parse
-	 * if they want an EUI48. This lends itself to good practice where
-	 * 
-	 * - ParseExceptions are handled
-	 * 
-	 * - the natural String representation of nodes is used
-	 * 
-	 * Using raw longs is thorny and should be avoided.
-	 * 
-	 * @param address
-	 */
-	private EUI64(String address) {
-		this.address = address;
-		this.node = Hex.parseLong(address);
-	}
-
-	/**
 	 * Takes a 16-byte hex string and inserts "." where appropriate
 	 */
 	public static String normalize(String stripped) {
@@ -86,12 +69,38 @@ public class EUI64 implements Comparable<EUI64> {
 	}
 
 	/**
+	 * Private constructor, used by parse(), which forces callers to use parse
+	 * if they want an EUI48. This lends itself to good practice where
+	 * 
+	 * - ParseExceptions are handled
+	 * 
+	 * - the natural String representation of nodes is used
+	 * 
+	 * Using raw longs is thorny and should be avoided.
+	 * 
+	 * @param address
+	 */
+	private EUI64(String address) {
+		this.address = address;
+		this.node = Hex.parseLong(address);
+	}
+
+	/**
 	 * Get long data representation.
 	 * 
 	 * @return
 	 */
 	public long asLong() {
 		return node;
+	}
+
+	@Override
+	public int compareTo(EUI64 o) {
+		if (node < o.node)
+			return -1;
+		if (node > o.node)
+			return 1;
+		return 0;
 	}
 
 	/**
@@ -101,7 +110,7 @@ public class EUI64 implements Comparable<EUI64> {
 	public String toString() {
 		return address;
 	}
-	
+
 	/**
 	 * String representation without ':'
 	 * 
@@ -111,10 +120,4 @@ public class EUI64 implements Comparable<EUI64> {
 		return address.replaceAll(".", "");
 	}
 
-	@Override
-	public int compareTo(EUI64 o) {
-		if (node < o.node) return -1;
-		if (node > o.node) return 1;
-		return 0;
-	}
 }

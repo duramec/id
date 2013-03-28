@@ -1,7 +1,7 @@
 package com.duramec.id;
 
-import java.util.regex.Pattern;
 import java.text.ParseException;
+import java.util.regex.Pattern;
 
 public final class EUI48 implements Comparable<EUI48> {
 	/**
@@ -34,23 +34,6 @@ public final class EUI48 implements Comparable<EUI48> {
 	 * "Nil" node value.
 	 */
 	public final static EUI48 nil = min;
-
-	/**
-	 * Private constructor, used by parse(), which forces callers to use parse
-	 * if they want an EUI48. This lends itself to good practice where
-	 * 
-	 * - ParseExceptions are handled
-	 * 
-	 * - the natural String representation of nodes is used
-	 * 
-	 * Using raw longs is thorny and should be avoided.
-	 * 
-	 * @param address
-	 */
-	private EUI48(String address) {
-		this.address = address;
-		this.node = Hex.parseLong(address);
-	}
 
 	/**
 	 * Takes a 12-byte hex string and inserts ":" where appropriate
@@ -92,6 +75,23 @@ public final class EUI48 implements Comparable<EUI48> {
 	}
 
 	/**
+	 * Private constructor, used by parse(), which forces callers to use parse
+	 * if they want an EUI48. This lends itself to good practice where
+	 * 
+	 * - ParseExceptions are handled
+	 * 
+	 * - the natural String representation of nodes is used
+	 * 
+	 * Using raw longs is thorny and should be avoided.
+	 * 
+	 * @param address
+	 */
+	private EUI48(String address) {
+		this.address = address;
+		this.node = Hex.parseLong(address);
+	}
+
+	/**
 	 * Get long data representation.
 	 * 
 	 * @return
@@ -100,9 +100,19 @@ public final class EUI48 implements Comparable<EUI48> {
 		return node;
 	}
 
+	@Override
+	public int compareTo(EUI48 o) {
+		if (node < o.node)
+			return -1;
+		if (node > o.node)
+			return 1;
+		return 0;
+	}
+
 	/**
 	 * String representation
 	 */
+	@Override
 	public String toString() {
 		return address;
 	}
@@ -114,13 +124,6 @@ public final class EUI48 implements Comparable<EUI48> {
 	 */
 	public String toStringNoPunctuation() {
 		return address.replaceAll(":", "");
-	}
-
-	@Override
-	public int compareTo(EUI48 o) {
-		if (node < o.node) return -1;
-		if (node > o.node) return 1;
-		return 0;
 	}
 
 }

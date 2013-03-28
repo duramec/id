@@ -16,12 +16,12 @@ class UUIDSuite extends FunSuite {
       uuid.getT60Instant.toString
     }
   }
-  
+
   test("correct variant") {
     val uuid = new UUID(EUI48.nil, new T60Instant(0L), 0L);
     expectResult (2) { uuid.variant() }
   }
-  
+
   test("correct version") {
     val uuid = new UUID(EUI48.nil, new T60Instant(0L), 0L);
     expectResult (1) { uuid.version() }
@@ -31,13 +31,13 @@ class UUIDSuite extends FunSuite {
     val text = "224538e0-c482-11e1-afa2-001c42000009"
     expectResult (text) {
       new UUID(text).toString
-     }
+    }
   }
 
   test("proper nil UUID") {
     assert(UUID.nilUUID().toString == "00000000-0000-0000-0000-000000000000")
   }
-  
+
   test("generated from high and low bytes") {
     val upper = 2469442508703273441L
     val lower = 0L
@@ -45,7 +45,7 @@ class UUIDSuite extends FunSuite {
     val against = new UUID("224538e0-c482-11e1-0000-000000000000")
     expectResult (against) { uuid }
   }
-  
+
   test("Instants properly stored in UUID and generated back") {
     expectResult (T60Instant.MIN) {
       (new UUID(EUI48.nil, T60Instant.MIN, 0L)).getT60Instant()
@@ -54,7 +54,7 @@ class UUIDSuite extends FunSuite {
       (new UUID(EUI48.nil, T60Instant.MAX, 0L)).getT60Instant()
     }
   }
-  
+
   test("payload correctly stored") {
     val load1 = 0L;
     expectResult(load1) {
@@ -73,7 +73,7 @@ class UUIDSuite extends FunSuite {
       (new UUID(EUI48.nil, new T60Instant(0L), load4)).getPayload()
     }
   }
-  
+
   test("generated with node") {
     val node = EUI48.parse("02:26:bb:00:63:49")
     val uuid = new UUID(node, T60Instant.MIN, 0L)

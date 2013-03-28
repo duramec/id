@@ -18,9 +18,11 @@ object Settings {
    
   val defaultSettings = buildSettings ++ Seq(
     resolvers ++= Seq(
-        typesafeRepo,
-        snapshotRepo,
-        mavenLocalRepo),
+        typesafe,
+        typesafeSnapshot,
+        duramec,
+        duramecSnapshot,
+        mavenLocal),
     compileOrder in Compile := CompileOrder.JavaThenScala,
     compileOrder in Test := CompileOrder.Mixed,
     scalacOptions in (Compile, doc) ++= Seq(
@@ -41,15 +43,22 @@ object Settings {
     javacOptions in doc := Seq("-source", jvmVersion),
     parallelExecution in Test := false,
     publishMavenStyle := true,
+    publishTo <<= version { (v: String) =>
+      if (v.trim.endsWith("SNAPSHOT")) Some(Resolvers.duramecSnapshot)
+      else Some(Resolvers.duramec)
+    },
     crossPaths := false // disable version number in artifacts
   )
 }
     
 object Resolvers {
-  val typeSafePrefix = "http://repo.typesafe.com/typesafe"
-  val typesafeRepo   = "typesafe" at (typeSafePrefix + "/releases/")
-  val snapshotRepo   = "snapshot" at (typeSafePrefix + "/snapshots/")
-  val mavenLocalRepo = "maven-local" at "file://"+Path.userHome+"/.m2/repository"
+  val duramecPrefix    = "repo.duramec.com"
+  val typeSafePrefix   = "http://repo.typesafe.com/typesafe"
+  val typesafe         = "typesafe" at (typeSafePrefix + "/releases/")
+  val typesafeSnapshot = "snapshot" at (typeSafePrefix + "/snapshots/")
+  val mavenLocal       = "maven-local" at "file://"+Path.userHome+"/.m2/repository"
+  val duramec          = Resolver.sftp("duramec", duramecPrefix, "/releases")
+  val duramecSnapshot  = Resolver.sftp("duramec-snapshots", duramecPrefix, "/snapshots")
 }
 
 object Dependencies {
@@ -70,7 +79,7 @@ object Dependency {
   import Version._
   
   val jodaTime     = "joda-time"     % "joda-time"      % "2.1"     % "compile"
-  val duraTime     = "com.duramec"   % "time"           % "0.1"     % "compile"
+  val duraTime     = "com.duramec"   % "time"           % "0.1.2"   % "compile"
   val scalaTest    = "org.scalatest" % "scalatest_2.10" % ScalaTest % "test"
 }
 
@@ -78,7 +87,7 @@ object IdBuild extends Build {
   import java.io.File._
   import Settings._
   
-  lazy val beam = Project(
+  lazy val idproject = Project(
     id = "id",
     base = file("."),
     settings = defaultSettings ++ Seq(
