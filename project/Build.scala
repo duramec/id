@@ -21,8 +21,8 @@ object Settings {
         typesafe,
         typesafeSnapshot,
         duramec,
-        duramecSnapshot,
-        mavenLocal),
+        duramecSnapshot
+        ),
     compileOrder in Compile := CompileOrder.JavaThenScala,
     compileOrder in Test := CompileOrder.Mixed,
     scalacOptions in (Compile, doc) ++= Seq(
@@ -42,7 +42,6 @@ object Settings {
       ),
     javacOptions in doc := Seq("-source", jvmVersion),
     parallelExecution in Test := false,
-    publishMavenStyle := true,
     publishTo <<= version { (v: String) =>
       if (v.trim.endsWith("SNAPSHOT")) Some(Resolvers.duramecSnapshot)
       else Some(Resolvers.duramec)
@@ -56,7 +55,6 @@ object Resolvers {
   val typeSafePrefix   = "http://repo.typesafe.com/typesafe"
   val typesafe         = "typesafe" at (typeSafePrefix + "/releases/")
   val typesafeSnapshot = "snapshot" at (typeSafePrefix + "/snapshots/")
-  val mavenLocal       = "maven-local" at "file://"+Path.userHome+"/.m2/repository"
   val duramec          = Resolver.sftp("duramec", duramecPrefix, "/releases")
   val duramecSnapshot  = Resolver.sftp("duramec-snapshots", duramecPrefix, "/snapshots")
 }
@@ -65,7 +63,6 @@ object Dependencies {
   import Dependency._
   
   val core = Seq(
-      jodaTime,
       duraTime,
       scalaTest)
 }
@@ -78,7 +75,6 @@ object Version {
 object Dependency {
   import Version._
   
-  val jodaTime     = "joda-time"     % "joda-time"      % "2.1"     % "compile"
   val duraTime     = "com.duramec"   % "time"           % "0.1.2"   % "compile"
   val scalaTest    = "org.scalatest" % "scalatest_2.10" % ScalaTest % "test"
 }
