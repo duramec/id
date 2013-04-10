@@ -75,7 +75,7 @@ object Version {
 object Dependency {
   import Version._
   
-  val duraTime     = "com.duramec"   % "time"           % "0.1.2"   % "compile"
+  val duraTime     = "com.duramec"   % "time"           % "0.1.3"   % "compile"
   val scalaTest    = "org.scalatest" % "scalatest_2.10" % ScalaTest % "test"
 }
 
